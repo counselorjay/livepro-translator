@@ -138,18 +138,21 @@
     <div id="translated-text">대기 중...</div>
     <div class="controls-row">
       <select id="lang-select">
-        <option value="KO">Korean (한국어)</option>
-        <option value="ZH">Chinese (中文)</option>
-        <option value="JA">Japanese (日本語)</option>
-        <option value="ES">Spanish (Español)</option>
-        <option value="FR">French (Français)</option>
-        <option value="DE">German (Deutsch)</option>
-        <option value="PT">Portuguese (Português)</option>
-        <option value="IT">Italian (Italiano)</option>
-        <option value="RU">Russian (Русский)</option>
-        <option value="VI">Vietnamese (Tiếng Việt)</option>
-        <option value="TH">Thai (ไทย)</option>
-        <option value="ID">Indonesian (Bahasa Indonesia)</option>
+        <option value="ko">Korean (한국어)</option>
+        <option value="zh-CN">Chinese Simplified (简体中文)</option>
+        <option value="zh-TW">Chinese Traditional (繁體中文)</option>
+        <option value="ja">Japanese (日本語)</option>
+        <option value="es">Spanish (Español)</option>
+        <option value="fr">French (Français)</option>
+        <option value="de">German (Deutsch)</option>
+        <option value="pt">Portuguese (Português)</option>
+        <option value="it">Italian (Italiano)</option>
+        <option value="ru">Russian (Русский)</option>
+        <option value="vi">Vietnamese (Tiếng Việt)</option>
+        <option value="th">Thai (ไทย)</option>
+        <option value="id">Indonesian (Bahasa Indonesia)</option>
+        <option value="ar">Arabic (العربية)</option>
+        <option value="hi">Hindi (हिन्दी)</option>
       </select>
       <button id="start-btn">Start Microphone</button>
     </div>
@@ -171,11 +174,14 @@
 
   let recognizing = false;
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  
-  // DeepL API key - set this or prompt user
-  let DEEPL_API_KEY = '396be426-67fa-4a7a-bad6-78034d72b851:fx';
-  
-  // API key hardcoded
+
+  const waitingTexts = {
+    'ko': '대기 중...', 'zh-CN': '等待中...', 'zh-TW': '等待中...', 'ja': 'お待ちください...',
+    'es': 'Esperando...', 'fr': 'En attente...', 'de': 'Warten...',
+    'pt': 'Aguardando...', 'it': 'In attesa...', 'ru': 'Ожидание...',
+    'vi': 'Đang chờ...', 'th': 'กำลังรอ...', 'id': 'Menunggu...',
+    'ar': 'في انتظار...', 'hi': 'प्रतीक्षा...'
+  };
 
   if (!SpeechRecognition) {
     translatedDiv.innerText = "Error: Please open this in Google Chrome.";
@@ -187,49 +193,18 @@
   recognition.interimResults = true;
   recognition.lang = 'en-US';
 
-  // DeepL language code mapping
-  const deeplLangMap = {
-    'KO': 'KO', 'ZH': 'ZH', 'JA': 'JA', 'ES': 'ES', 'FR': 'FR',
-    'DE': 'DE', 'PT': 'PT-PT', 'IT': 'IT', 'RU': 'RU', 'VI': 'VI',
-    'TH': 'TH', 'ID': 'ID'
-  };
-
-  const waitingTexts = {
-    'KO': '대기 중...', 'ZH': '等待中...', 'JA': 'お待ちください...',
-    'ES': 'Esperando...', 'FR': 'En attente...', 'DE': 'Warten...',
-    'PT': 'Aguardando...', 'IT': 'In attesa...', 'RU': 'Ожидание...',
-    'VI': 'Đang chờ...', 'TH': 'กำลังรอ...', 'ID': 'Menunggu...'
-  };
-
   async function translateText(text) {
     if (!text.trim()) return "";
-    
     const targetLang = langSelect.value;
-    const targetCode = deeplLangMap[targetLang] || targetLang;
-    
-    // Use CORS proxy to bypass browser restrictions
-    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(
-      'https://api-free.deepl.com/v2/translate'
-    );
-    
     try {
-      const response = await fetch(proxyUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': 'DeepL-Auth-Key 396be426-67fa-4a7a-bad6-78034d72b851:fx'
-        },
-        body: `text=${encodeURIComponent(text)}&source_lang=EN&target_lang=${targetCode}`
-      });
-      
+      // Using Google Translate API (client=gtx for free access)
+      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+      const response = await fetch(url);
       const data = await response.json();
-      if (data.translations && data.translations.length > 0) {
-        return data.translations[0].text;
-      }
-      return "Translation error.";
+      return data[0].map(item => item[0]).join('');
     } catch (e) {
       console.error(e);
-      return "API Error: " + e.message;
+      return "Translation error.";
     }
   }
 
