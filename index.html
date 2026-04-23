@@ -128,27 +128,6 @@
     font-size: 1rem;
     color: #444;
   }
-  .api-key-prompt {
-    background: #222;
-    padding: 20px;
-    border-radius: 12px;
-    border: 1px solid #444;
-    text-align: center;
-  }
-  .api-key-prompt input {
-    padding: 8px;
-    font-size: 0.9rem;
-    background: #111;
-    border: 1px solid #444;
-    color: #fff;
-    border-radius: 6px;
-    width: 300px;
-    margin-top: 10px;
-  }
-  .api-key-prompt button {
-    margin-left: 10px;
-    font-size: 0.9rem;
-  }
 </style>
 </head>
 <body>
@@ -194,32 +173,9 @@
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   
   // DeepL API key - set this or prompt user
-  let DEEPL_API_KEY = localStorage.getItem('deepl_api_key') || '';
+  let DEEPL_API_KEY = '396be426-67fa-4a7a-bad6-78034d72b851:fx';
   
-  // Check for API key on load
-  if (!DEEPL_API_KEY) {
-    const wrapper = document.getElementById('main-wrapper');
-    const promptDiv = document.createElement('div');
-    promptDiv.className = 'api-key-prompt';
-    promptDiv.innerHTML = `
-      <h3>🔑 DeepL API Key Required</h3>
-      <p style="color:#888;font-size:0.8rem;margin-top:8px;">Get your free API key at <a href="https://deepl.com/pro-api" target="_blank" style="color:#4facfe;">deepl.com/pro-api</a></p>
-      <div style="margin-top:15px;">
-        <input type="password" id="api-key-input" placeholder="Enter your DeepL API key">
-        <button id="save-key-btn">Save</button>
-      </div>
-    `;
-    wrapper.insertBefore(promptDiv, wrapper.firstChild);
-    
-    document.getElementById('save-key-btn').addEventListener('click', () => {
-      const input = document.getElementById('api-key-input');
-      if (input.value.trim()) {
-        DEEPL_API_KEY = input.value.trim();
-        localStorage.setItem('deepl_api_key', DEEPL_API_KEY);
-        promptDiv.remove();
-      }
-    });
-  }
+  // API key hardcoded
 
   if (!SpeechRecognition) {
     translatedDiv.innerText = "Error: Please open this in Google Chrome.";
@@ -336,11 +292,6 @@
   };
 
   startBtn.addEventListener('click', () => {
-    if (!DEEPL_API_KEY) {
-      alert("Please enter your DeepL API key first!");
-      return;
-    }
-    
     if (recognizing) {
       recognition.stop();
       recognizing = false;
