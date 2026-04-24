@@ -175,6 +175,20 @@
   let recognizing = false;
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
+  // --- Configuration ---
+  const MODES = {
+    FAST: { silenceMs: 2000, maxChunkMs: 5000 },
+    BALANCED: { silenceMs: 4000, maxChunkMs: 7000 },
+    ACCURATE: { silenceMs: 6000, maxChunkMs: 10000 }
+  };
+
+  const CURRENT_MODE = MODES.BALANCED;
+
+  // --- Timers ---
+  let silenceTimer;
+  let maxChunkTimer;
+  let pendingChunk = "";
+
   const waitingTexts = {
     'ko': '대기 중...', 'zh-CN': '等待中...', 'zh-TW': '等待中...', 'ja': 'お待ちください...',
     'es': 'Esperando...', 'fr': 'En attente...', 'de': 'Warten...',
@@ -190,9 +204,10 @@
 
   const recognition = new SpeechRecognition();
   recognition.continuous = true;
-  recognition.interimResults = true;
+  recognition.interimResults = false; // IMPORTANT: Disable interim results for translation
   recognition.lang = 'en-US';
 
+  // --- Translation and Chunking Logic ---
   async function translateText(text) {
     if (!text.trim()) return "";
     const targetLang = langSelect.value;
@@ -215,7 +230,34 @@
     }
   }
 
-  let translationTimeout;
+  function finalizeChunk() {
+    if (!pendingChunk.trim() || pendingChunk.trim() === englishDiv.innerText) {
+      // Ignore empty or duplicate chunks
+      return;
+    }
+
+    translateText(pendingChunk).then(translated => {
+      historyLines.push({ en: pendingChunk.trim(), tl: translated });
+      if (historyLines.length > 4) historyLines.shift(); // Maintain max history
+      renderHistory();
+    });
+
+    // Reset timers and buffer
+    clearTimeout(silenceTimer);
+    clearTimeout(maxChunkTimer);
+    pendingChunk = "";
+    englishDiv.innerText = "Waiting for speech..."; // Reset live listening text
+  }
+
+  function resetTimers() {
+    clearTimeout(silenceTimer);
+    clearTimeout(maxChunkTimer);
+    if (recognizing) {
+        silenceTimer = setTimeout(finalizeChunk, CURRENT_MODE.silenceMs);
+        maxChunkTimer = setTimeout(finalizeChunk, CURRENT_MODE.maxChunkMs);
+    }
+  }
+
   let historyLines = [];
 
   function renderHistory() {
@@ -229,16 +271,21 @@
     });
   }
 
-  async function processFinal(text) {
-    if (!text.trim()) return;
-    const translated = await translateText(text);
-    historyLines.push({ en: text, tl: translated });
-    if (historyLines.length > 4) historyLines.shift();
-    renderHistory();
+  // Process finalized speech
+  function processFinal(text) {
+      if (!text.trim()) return;
+      pendingChunk += " " + text.trim(); // Append to chunk
+
+      // Update live English transcript
+      englishDiv.innerText = pendingChunk.trim();
+
+      // Reset timers for new speech
+      resetTimers();
   }
 
+
   langSelect.addEventListener('change', () => {
-    historyLines = [];
+    historyLines = []; // Clear history on language change
     renderHistory();
     if (!recognizing) {
       translatedDiv.innerText = waitingTexts[langSelect.value] || 'Waiting...';
@@ -249,51 +296,83 @@
     let interim = '';
 
     for (let i = event.resultIndex; i < event.results.length; ++i) {
+      // ONLY process final results for translation
       if (event.results[i].isFinal) {
         processFinal(event.results[i][0].transcript);
       } else {
+        // Show interim text as "live listening"
         interim += event.results[i][0].transcript;
       }
     }
-
-    englishDiv.innerText = interim || (recognizing ? "..." : "Waiting for speech...");
     
-    clearTimeout(translationTimeout);
+    // Update live English transcript with interim text
     if (interim.trim().length > 0) {
-      translationTimeout = setTimeout(async () => {
-        const translated = await translateText(interim);
-        translatedDiv.innerText = translated;
-      }, 400);
-    } else {
-      translatedDiv.innerText = recognizing ? "" : (waitingTexts[langSelect.value] || 'Waiting...');
+        englishDiv.innerText = pendingChunk.trim() + " " + interim.trim();
     }
+
+    // Don't trigger translation on interim results, but reset timers
+    resetTimers();
   };
 
   recognition.onend = () => {
+    // If recognizing was true, it means the user stopped speaking or there was an error.
+    // Start again if recognizing is still true, but handle potential errors.
     if (recognizing) {
+      silenceTimer = setTimeout(finalizeChunk, CURRENT_MODE.silenceMs); // Finalize any remaining chunk on stop
       try {
-        recognition.start();
-      } catch(e) {}
+        recognition.start(); // Attempt to restart
+      } catch(e) {
+        console.error("Error restarting recognition:", e);
+        // Handle error, maybe show a message to the user
+      }
     }
   };
 
   startBtn.addEventListener('click', () => {
     if (recognizing) {
+      // Stop the process
       recognition.stop();
       recognizing = false;
       startBtn.innerText = "Start Microphone";
       startBtn.classList.remove("recording");
+      
+      // Finalize any remaining chunk when stopping
+      finalizeChunk();
+      
       englishDiv.innerText = "Waiting for speech...";
       translatedDiv.innerText = waitingTexts[langSelect.value] || 'Waiting...';
+      
     } else {
+      // Start the process
       recognition.start();
       recognizing = true;
       startBtn.innerText = "Stop Microphone";
       startBtn.classList.add("recording");
+      
+      // Reset state and timers
+      pendingChunk = "";
+      historyLines = [];
+      renderHistory(); // Clear history display
       englishDiv.innerText = "Listening...";
-      translatedDiv.innerText = "";
+      translatedDiv.innerText = ""; // Clear previous translation prompt
+      
+      resetTimers(); // Start the timers
     }
   });
+
+  // Initial setup for language selector
+  langSelect.addEventListener('change', () => {
+    historyLines = []; // Clear history on language change
+    renderHistory();
+    if (!recognizing) {
+      translatedDiv.innerText = waitingTexts[langSelect.value] || 'Waiting...';
+    }
+  });
+
+  // Initialize history and language selector
+  renderHistory();
+  translatedDiv.innerText = waitingTexts[langSelect.value] || 'Waiting...';
+
 </script>
 </body>
 </html>
