@@ -237,6 +237,9 @@
     }
 
     translateText(pendingChunk).then(translated => {
+      // Show current translation in real-time
+      translatedDiv.innerText = translated;
+      // Also add to history
       historyLines.push({ en: pendingChunk.trim(), tl: translated });
       if (historyLines.length > 4) historyLines.shift(); // Maintain max history
       renderHistory();
