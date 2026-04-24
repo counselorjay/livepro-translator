@@ -231,16 +231,18 @@
   }
 
   function finalizeChunk() {
-    if (!pendingChunk.trim() || pendingChunk.trim() === englishDiv.innerText) {
-      // Ignore empty or duplicate chunks
+    if (!pendingChunk.trim()) {
+      // Ignore empty chunks
       return;
     }
 
-    translateText(pendingChunk).then(translated => {
+    const chunkText = pendingChunk.trim();
+
+    translateText(chunkText).then(translated => {
       // Show current translation in real-time
       translatedDiv.innerText = translated;
       // Also add to history
-      historyLines.push({ en: pendingChunk.trim(), tl: translated });
+      historyLines.push({ en: chunkText, tl: translated });
       if (historyLines.length > 4) historyLines.shift(); // Maintain max history
       renderHistory();
     });
