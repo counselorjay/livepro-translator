@@ -242,7 +242,7 @@
       // Show current translation in real-time
       translatedDiv.innerText = translated;
       // Broadcast for viewer subdomains
-      try { localStorage.setItem('currentTranslation', translated); localStorage.setItem('currentEnglish', chunkText); } catch(e) {}
+      try { document.domain = 'counselorjay.com'; localStorage.setItem('currentTranslation', translated); localStorage.setItem('currentEnglish', chunkText); } catch(e) {}
       // Also add to history
       historyLines.push({ en: chunkText, tl: translated });
       if (historyLines.length > 4) historyLines.shift(); // Maintain max history
