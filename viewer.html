@@ -58,13 +58,6 @@
       font-size: 2rem;
     }
     
-    .english {
-      font-size: 1.2rem;
-      color: var(--muted);
-      margin-top: 20px;
-      font-style: italic;
-    }
-    
     .status {
       position: fixed;
       bottom: 20px;
@@ -87,7 +80,6 @@
   <div class="container">
     <h1>Live Translation</h1>
     <div id="translation" class="translation placeholder">Waiting for translation...</div>
-    <div id="english" class="english"></div>
   </div>
   
   <div class="waiting">Auto-sync from livepro.counselorjay.com</div>
@@ -95,23 +87,17 @@
 
   <script>
     const translationEl = document.getElementById('translation');
-    const englishEl = document.getElementById('english');
     
     function checkTranslation() {
       try {
         const trans = localStorage.getItem('currentTranslation');
-        const eng = localStorage.getItem('currentEnglish');
         
         if (trans) {
           translationEl.textContent = trans;
           translationEl.classList.remove('placeholder');
         }
-        
-        if (eng) {
-          englishEl.textContent = eng;
-        }
       } catch(e) {
-        // Cross-origin localStorage won't work - use polling instead
+        // LocalStorage not accessible
       }
       setTimeout(checkTranslation, 500);
     }
