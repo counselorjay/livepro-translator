@@ -19,17 +19,7 @@
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
       padding: 40px;
-    }
-    
-    .container {
-      max-width: 1200px;
-      width: 100%;
-      text-align: center;
     }
     
     h1 {
@@ -37,25 +27,35 @@
       color: var(--muted);
       text-transform: uppercase;
       letter-spacing: 4px;
-      margin-bottom: 40px;
+      margin-bottom: 30px;
       font-weight: 400;
     }
     
-    .translation {
-      font-size: clamp(2.5rem, 6vw, 5rem);
-      line-height: 1.3;
-      font-weight: 600;
-      color: var(--text);
-      min-height: 200px;
+    .translations {
       display: flex;
-      align-items: center;
-      justify-content: center;
+      flex-direction: column;
+      gap: 25px;
+      max-width: 1200px;
+      margin: 0 auto;
     }
     
-    .translation.placeholder {
+    .translation-line {
+      font-size: 2rem;
+      line-height: 1.4;
+      font-weight: 500;
+      color: var(--text);
+    }
+    
+    .translation-line.placeholder {
       color: var(--muted);
       font-weight: 400;
-      font-size: 2rem;
+      font-size: 1.5rem;
+    }
+    
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      font-size: 1.5rem;
     }
     
     .status {
@@ -64,41 +64,43 @@
       right: 20px;
       font-size: 0.8rem;
       color: var(--accent);
-      opacity: 0.8;
-    }
-    
-    .waiting {
-      position: fixed;
-      bottom: 20px;
-      left: 20px;
-      font-size: 0.8rem;
-      color: var(--muted);
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Live Translation</h1>
-    <div id="translation" class="translation placeholder">Waiting for translation...</div>
+  <h1>Live Translation</h1>
+  
+  <div id="translations" class="translations">
+    <div class="empty">Waiting for translation...</div>
   </div>
   
-  <div class="waiting">Auto-sync from livepro.counselorjay.com</div>
   <div class="status">● Live</div>
 
   <script>
-    const translationEl = document.getElementById('translation');
+    const container = document.getElementById('translations');
+    let history = [];
+    const maxHistory = 8;
+    
+    function render() {
+      if (history.length === 0) {
+        container.innerHTML = '<div class="empty">Waiting for translation...</div>';
+        return;
+      }
+      
+      container.innerHTML = history.map(t => 
+        `<div class="translation-line">${t}</div>`
+      ).join('');
+    }
     
     function checkTranslation() {
       try {
         const trans = localStorage.getItem('currentTranslation');
-        
-        if (trans) {
-          translationEl.textContent = trans;
-          translationEl.classList.remove('placeholder');
+        if (trans && trans !== history[history.length - 1]) {
+          history.push(trans);
+          if (history.length > maxHistory) history.shift();
+          render();
         }
-      } catch(e) {
-        // LocalStorage not accessible
-      }
+      } catch(e) {}
       setTimeout(checkTranslation, 500);
     }
     
